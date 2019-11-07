@@ -1,18 +1,22 @@
 package com.zaidimarvels.voiceapp;
 
 import android.Manifest;
+import android.content.ContentResolver;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.database.Cursor;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.AlarmClock;
+import android.provider.ContactsContract;
 import android.provider.MediaStore;
 import android.provider.Telephony;
 import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
 import android.speech.tts.TextToSpeech;
+import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
@@ -44,6 +48,11 @@ public class MainActivity extends AppCompatActivity {
     List<Message> messagesList = new ArrayList<>();
     RecyclerView messageRecyclerView;
     MessageAdapter messageAdapter;
+    String contactName;
+    private static final int REQUEST_CALL = 2;
+
+    public static final int REQUEST_READ_CONTACTS = 79;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -212,9 +221,18 @@ public class MainActivity extends AppCompatActivity {
         } else if(result_message.indexOf("call") !=-1){
 
             speak("Calling...");
-            Intent intent = new Intent(Intent.ACTION_DIAL);
+            /*Intent intent = new Intent(Intent.ACTION_DIAL);
             intent.setData(Uri.parse("tel:0"));
-            startActivity(intent);
+            startActivity(intent);*/
+            this.contactName = removeWord(result_message, "call");
+            if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.READ_CONTACTS)
+                    == PackageManager.PERMISSION_GRANTED) {
+                callNow(contactName);
+            } else {
+                requestPermission();
+            }
+
+
         } else if(result_message.indexOf("alarm") !=-1){
             Intent i = new Intent(AlarmClock.ACTION_SET_ALARM);
             startActivity(i);
@@ -235,6 +253,33 @@ public class MainActivity extends AppCompatActivity {
         }else{
             speak("I don't understand, What you're saying!");
         }
+    }
+
+    //To get contact name from voice to text
+
+    public static String removeWord(String string, String word)
+    {
+
+        // Check if the word is present in string
+        // If found, remove it using removeAll()
+        if (string.contains(word)) {
+
+            // To cover the case
+            // if the word is at the
+            // beginning of the string
+            // or anywhere in the middle
+            String tempWord = word + " ";
+            string = string.replaceAll(tempWord, "");
+
+            // To cover the edge case
+            // if the word is at the
+            // end of the string
+            tempWord = " " + word;
+            string = string.replaceAll(tempWord, "");
+        }
+
+        // Return the resultant string
+        return string.trim();
     }
 
     private void initializeTextToSpeech() {
@@ -320,4 +365,93 @@ public class MainActivity extends AppCompatActivity {
             /*For descending order*/
             //rollno2-rollno1;
         }};
+
+    private void requestPermission() {
+        if (ActivityCompat.shouldShowRequestPermissionRationale(this, android.Manifest.permission.READ_CONTACTS)) {
+            // show UI part if you want here to show some rationale !!!
+        } else {
+            ActivityCompat.requestPermissions(this, new String[]{android.Manifest.permission.READ_CONTACTS},
+                    REQUEST_READ_CONTACTS);
+        }
+        if (ActivityCompat.shouldShowRequestPermissionRationale(this, android.Manifest.permission.READ_CONTACTS)) {
+        } else {
+            ActivityCompat.requestPermissions(this, new String[]{android.Manifest.permission.READ_CONTACTS},
+                    REQUEST_READ_CONTACTS);
+        }
+    }
+    @Override
+    public void onRequestPermissionsResult(int requestCode,
+                                           @NonNull String[] permissions, @NonNull int[] grantResults) {
+        if (requestCode == REQUEST_READ_CONTACTS) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                callNow(contactName);
+            }/* else {
+                    // permission denied,Disable the
+                    // functionality that depends on this permission.
+                }*/
+        }else if (requestCode == REQUEST_CALL) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                callNow(contactName);
+            } else {
+                Toast.makeText(this, "Permission DENIED", Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
+    private void callNow(String contactName) {
+        List<Contact> nameList = new ArrayList<>();
+        ContentResolver cr = getContentResolver();
+        Cursor cur = cr.query(ContactsContract.Contacts.CONTENT_URI,
+                null, null, null, null);
+        if ((cur != null ? cur.getCount() : 0) > 0) {
+            while (cur != null && cur.moveToNext()) {
+                String id = cur.getString(
+                        cur.getColumnIndex(ContactsContract.Contacts._ID));
+                String name = cur.getString(cur.getColumnIndex(
+                        ContactsContract.Contacts.DISPLAY_NAME)).trim();
+                String cnt =cur.getString(cur.getColumnIndex(ContactsContract.Contacts.HAS_PHONE_NUMBER));
+                // nameList.add(name+" : "+cnt);
+                if (cur.getInt(cur.getColumnIndex( ContactsContract.Contacts.HAS_PHONE_NUMBER)) > 0) {
+                    Cursor pCur = cr.query(
+                            ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
+                            null,
+                            ContactsContract.CommonDataKinds.Phone.CONTACT_ID + " = ?",
+                            new String[]{id}, null);
+                    while (pCur.moveToNext()) {
+                        String phoneNo = pCur.getString(pCur.getColumnIndex(
+                                ContactsContract.CommonDataKinds.Phone.NUMBER));
+                        //nameList.add(name+" : "+phoneNo);
+                        String stringWithoutSpaces = convertToLowerCase(name).replaceAll("\\s+", "");
+                        if(stringWithoutSpaces.contains(contactName)){
+                            MakePhoneCall("tel:"+phoneNo);
+                        }
+                    }
+                    pCur.close();
+                }
+            }
+        }
+        if (cur != null) {
+            cur.close();
+        }
+        //return nameList;
+
+    }
+
+    private String convertToLowerCase(String name) {
+        return  name.toLowerCase();
+    }
+
+    public void MakePhoneCall(String s){
+        /*Intent callIntent =new Intent(Intent.ACTION_CALL);
+        callIntent.setData(Uri.parse(s));
+        startActivity(callIntent);*/
+        if (ContextCompat.checkSelfPermission(this,
+                Manifest.permission.CALL_PHONE) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.CALL_PHONE}, REQUEST_CALL);
+        } else {
+
+            startActivity(new Intent(Intent.ACTION_CALL, Uri.parse(s)));
+        }
+    }
 }
