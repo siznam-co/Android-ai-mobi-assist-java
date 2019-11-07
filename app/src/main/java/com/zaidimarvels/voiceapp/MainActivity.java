@@ -229,14 +229,20 @@ public class MainActivity extends AppCompatActivity {
             speak("Pakistan is our beloved country...");
         }else if(result_message.contains("how") && result_message.contains("are")){
             speak("I'm fine! What about you? ");
-        }else if (result_message.contains("hi")){
+        }else if (result_message.contains("hi") || result_message.contains("hello") || result_message.contains("hallo") || result_message.contains("helo")){
             speak("Hey, How are you? By the way! i'm fine...");
         }
         else if (result_message.contains("earth")){
             speak("Don't be silly, The earth is a sphere. As are all other planets and celestial bodies");
-        } else if (result_message.contains("browser")){
+        } else if (result_message.contains("browser") || result_message.contains("google") || result_message.contains("search") || result_message.contains("internet")){
             speak("Opening a browser master.");
-            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com"));
+            String temp = removeWord(result_message, "browser");
+            temp = removeWord(temp,"search");
+            temp = removeWord(temp, "on");
+            temp = removeWord(temp,"about");
+            temp = removeWord(temp, "google");
+
+            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com/#q="+temp));
             startActivity(intent);
         } else if(result_message.contains("sms") || result_message.contains("message")){
             setContactName("");
