@@ -41,6 +41,8 @@ import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class MainActivity extends AppCompatActivity {
     private static final int MY_PERMISSIONS_REQUEST_RECORD_AUDIO = 1;
@@ -214,8 +216,19 @@ public class MainActivity extends AppCompatActivity {
                 String time_now = DateUtils.formatDateTime(this, new Date().getTime(),DateUtils.FORMAT_SHOW_TIME);
                 speak("The time is now: " + time_now);
             }
-        } else if (result_message.contains("love")){
+            if (result_message.contains("love")){
+                speak("Love is wonderful.");
+            }
+        }else if (result_message.contains("love")){
             speak("Love is wonderful.");
+        }else if (result_message.contains("shut")){
+            speak("You are very rude! Take a chill pill.");
+        }else if(result_message.contains("prime minister") && result_message.contains("pakistan")){
+            speak("Imran Khan is the prime minister of pakistan. Ohhh, I am sorry, new Pakistan..");
+        }else if(result_message.contains("pakistan")){
+            speak("Pakistan is our beloved country...");
+        }else if(result_message.contains("how") && result_message.contains("are")){
+            speak("I'm fine! What about you? ");
         }else if (result_message.contains("hi")){
             speak("Hey, How are you? By the way! i'm fine...");
         }
@@ -249,8 +262,41 @@ public class MainActivity extends AppCompatActivity {
 
 
         } else if(result_message.contains("alarm")){
-            Intent i = new Intent(AlarmClock.ACTION_SET_ALARM);
-            startActivity(i);
+            Intent intent = new Intent(AlarmClock.ACTION_SET_ALARM);
+
+            String regex = "(\\d{2}:\\d{2})";
+            Pattern pattern = Pattern.compile(regex);
+            Matcher matcher = pattern.matcher(result_message);
+            if (matcher.find()) {
+                int start = matcher.start(); // start index of match
+                int end = matcher.end(); // end index of match
+                String result = matcher.group(1);
+                showMessage(result);
+
+                String temp = result.substring(0,2);
+                intent.putExtra(AlarmClock.EXTRA_HOUR, Integer.parseInt(temp));
+                temp = result.substring(result.lastIndexOf(":") + 1);
+                intent.putExtra(AlarmClock.EXTRA_MINUTES,Integer.parseInt(temp));
+                startActivity(intent);
+
+            }else{
+                regex = "(\\d{1}:\\d{2})";
+                pattern = Pattern.compile(regex);
+                matcher = pattern.matcher(result_message);
+                if (matcher.find()) {
+                    int start = matcher.start(); // start index of match
+                    int end = matcher.end(); // end index of match
+                    String result = matcher.group(1);
+                    showMessage(result);
+
+                    //int nums = Integer.parseInt(result.split("(?=\\D)")[0]);
+                    String temp = result.substring(0,1);
+                    intent.putExtra(AlarmClock.EXTRA_HOUR, Integer.parseInt(temp));
+                    temp = result.substring(result.lastIndexOf(":") + 1);
+                    intent.putExtra(AlarmClock.EXTRA_MINUTES,Integer.parseInt(temp));
+                    startActivity(intent);
+                }
+            }
 
 
         } else if(result_message.contains("map") || result_message.contains("maps")){
