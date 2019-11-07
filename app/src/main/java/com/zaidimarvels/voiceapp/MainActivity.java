@@ -2,9 +2,11 @@ package com.zaidimarvels.voiceapp;
 
 import android.Manifest;
 import android.content.ContentResolver;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
+import android.media.AudioManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -25,6 +27,7 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.text.format.DateUtils;
+import android.view.KeyEvent;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -48,10 +51,14 @@ public class MainActivity extends AppCompatActivity {
     List<Message> messagesList = new ArrayList<>();
     RecyclerView messageRecyclerView;
     MessageAdapter messageAdapter;
-    String contactName;
+    String contactName = "", type = "";
     private static final int REQUEST_CALL = 2;
 
     public static final int REQUEST_READ_CONTACTS = 79;
+    public static final String SERVICECMD = "com.android.music.musicservicecommand";
+    public static final String CMDNAME = "command";
+    public static final String CMDSTOP = "stop";
+
 
 
     @Override
@@ -198,63 +205,95 @@ public class MainActivity extends AppCompatActivity {
 //        Second: What is the time?
 //        Third: Is the earth flat or a sphere?
 //        Fourth: Open a browser and open url
-        if(result_message.indexOf("what") != -1){
-            if(result_message.indexOf("your name") != -1){
+
+        if(result_message.contains("what")){
+            if(result_message.contains("your name")){
                 speak("My Name is Mobi Assist. Nice to meet you!");
             }
-            if (result_message.indexOf("time") != -1){
+            if (result_message.contains("time")){
                 String time_now = DateUtils.formatDateTime(this, new Date().getTime(),DateUtils.FORMAT_SHOW_TIME);
                 speak("The time is now: " + time_now);
             }
-        } else if (result_message.indexOf("earth") != -1){
+        } else if (result_message.contains("love")){
+            speak("Love is wonderful.");
+        }else if (result_message.contains("hi")){
+            speak("Hey, How are you? By the way! i'm fine...");
+        }
+        else if (result_message.contains("earth")){
             speak("Don't be silly, The earth is a sphere. As are all other planets and celestial bodies");
-        } else if (result_message.indexOf("browser") != -1){
-            speak("Opening a browser right away master.");
+        } else if (result_message.contains("browser")){
+            speak("Opening a browser master.");
             Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com"));
             startActivity(intent);
-        } else if(result_message.indexOf("sms") != -1){
-            speak("Opening your default sms app. ");
-            Intent sendIntent = new Intent(Intent.ACTION_VIEW);
-            sendIntent.setData(Uri.parse("sms:"));
-            sendIntent.putExtra("sms_body", "");
-            startActivity(sendIntent);
-        } else if(result_message.indexOf("call") !=-1){
-
-            speak("Calling...");
-            /*Intent intent = new Intent(Intent.ACTION_DIAL);
-            intent.setData(Uri.parse("tel:0"));
-            startActivity(intent);*/
-            this.contactName = removeWord(result_message, "call");
+        } else if(result_message.contains("sms") || result_message.contains("message")){
+            setContactName("");
+            contactName = removeWord(result_message, "send");
+            contactName = removeWord(contactName, "sms");
+            contactName = removeWord(contactName, "to");
+            contactName = removeWord(contactName, "message");
+            setType("sms");
+            setContactName(contactName);
+            searchContacts(contactName);
+        } else if(result_message.contains("call")){
+            setContactName("");
+            setType("call");
+            contactName = removeWord(result_message, "call");
+            setContactName(contactName);
+            showMessage(contactName);
             if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.READ_CONTACTS)
                     == PackageManager.PERMISSION_GRANTED) {
-                callNow(contactName);
+                searchContacts(getContactName());
             } else {
                 requestPermission();
             }
 
 
-        } else if(result_message.indexOf("alarm") !=-1){
+        } else if(result_message.contains("alarm")){
             Intent i = new Intent(AlarmClock.ACTION_SET_ALARM);
             startActivity(i);
-        } else if(result_message.indexOf("map")!=-1 || result_message.indexOf("maps")!=-1){
+
+
+        } else if(result_message.contains("map") || result_message.contains("maps")){
             speak("Opening Google maps");
             Intent intent = new Intent(Intent.ACTION_VIEW,
                     Uri.parse("http://maps.google.com/maps"));
             startActivity(intent);
-        }else if(result_message.indexOf("setting")!=-1 || result_message.indexOf("settings")!=-1){
+        }else if(result_message.contains("setting") || result_message.contains("settings")){
             startActivityForResult(new Intent(android.provider.Settings.ACTION_SETTINGS), 0);
-        }else if(result_message.indexOf("camera")!=-1){
+        }else if(result_message.contains("camera")){
             Intent intent = new Intent("android.media.action.IMAGE_CAPTURE");
             startActivity(intent);
-        }else if(result_message.indexOf("music")!=-1 || result_message.indexOf("song")!=-1){
-            Intent intent = new Intent(MediaStore.INTENT_ACTION_MUSIC_PLAYER);
+        }else if(result_message.contains("music") || result_message.contains("song")){
+            /*Intent intent = new Intent(MediaStore.INTENT_ACTION_MUSIC_PLAYER);
             intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            startActivity(intent);
+            startActivity(intent);*/
+            AudioManager mAudioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+            speak("Enjoy music...");
+            if (mAudioManager == null)
+                mAudioManager = (AudioManager)getSystemService(AUDIO_SERVICE);
+
+            KeyEvent event = new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_MEDIA_PLAY);
+            mAudioManager.dispatchMediaKeyEvent(event);
         }else{
             speak("I don't understand, What you're saying!");
         }
     }
 
+    private void setContactName(String contactName) {
+        this.contactName = contactName;
+    }
+
+    public String getContactName() {
+        return contactName;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
+    }
     //To get contact name from voice to text
 
     public static String removeWord(String string, String word)
@@ -384,21 +423,21 @@ public class MainActivity extends AppCompatActivity {
                                            @NonNull String[] permissions, @NonNull int[] grantResults) {
         if (requestCode == REQUEST_READ_CONTACTS) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                callNow(contactName);
+                searchContacts(contactName);
             }/* else {
                     // permission denied,Disable the
                     // functionality that depends on this permission.
                 }*/
         }else if (requestCode == REQUEST_CALL) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                callNow(contactName);
+                searchContacts(contactName);
             } else {
                 Toast.makeText(this, "Permission DENIED", Toast.LENGTH_SHORT).show();
             }
         }
     }
 
-    private void callNow(String contactName) {
+    private void searchContacts(String contactName) {
         List<Contact> nameList = new ArrayList<>();
         ContentResolver cr = getContentResolver();
         Cursor cur = cr.query(ContactsContract.Contacts.CONTENT_URI,
@@ -423,7 +462,19 @@ public class MainActivity extends AppCompatActivity {
                         //nameList.add(name+" : "+phoneNo);
                         String stringWithoutSpaces = convertToLowerCase(name).replaceAll("\\s+", "");
                         if(stringWithoutSpaces.contains(contactName)){
-                            MakePhoneCall("tel:"+phoneNo);
+                            if(getType().equals("call")){
+                                MakePhoneCall("tel:"+phoneNo);
+                                speak("Calling "+name);
+                                break;
+                            }else{
+                                Intent sendIntent = new Intent(Intent.ACTION_VIEW);
+                                sendIntent.setData(Uri.parse("sms:"+phoneNo));
+                                sendIntent.putExtra("sms_body", "");
+                                startActivity(sendIntent);
+                                speak("Opening App to message "+name);
+                                break;
+                            }
+
                         }
                     }
                     pCur.close();
@@ -445,13 +496,29 @@ public class MainActivity extends AppCompatActivity {
         /*Intent callIntent =new Intent(Intent.ACTION_CALL);
         callIntent.setData(Uri.parse(s));
         startActivity(callIntent);*/
-        if (ContextCompat.checkSelfPermission(this,
-                Manifest.permission.CALL_PHONE) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this,
-                    new String[]{Manifest.permission.CALL_PHONE}, REQUEST_CALL);
-        } else {
+        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M){
+            if (ContextCompat.checkSelfPermission(this,
+                    Manifest.permission.CALL_PHONE) != PackageManager.PERMISSION_GRANTED) {
+                if (ActivityCompat.shouldShowRequestPermissionRationale(this,
+                        Manifest.permission.CALL_PHONE)) {
+                    // Show an explanation to the user *asynchronously* -- don't block
+                    // this thread waiting for the user's response! After the user
+                    // sees the explanation, try again to request the permission.
+                } else {
+                    ActivityCompat.requestPermissions(this,
+                            new String[]{Manifest.permission.CALL_PHONE}, REQUEST_CALL);
 
-            startActivity(new Intent(Intent.ACTION_CALL, Uri.parse(s)));
+                }
+            } else {
+
+                Intent callIntent =new Intent(Intent.ACTION_CALL);
+                callIntent.setData(Uri.parse(s));
+                startActivity(callIntent);
+            }
+        }else{
+            Intent callIntent =new Intent(Intent.ACTION_CALL);
+            callIntent.setData(Uri.parse(s));
+            startActivity(callIntent);
         }
     }
 }

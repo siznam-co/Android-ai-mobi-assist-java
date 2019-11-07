@@ -15,8 +15,9 @@
         android:background="@drawable/person_left"
         android:layout_marginStart="10dp"
         android:padding="7dp"
-        android:textColor="@android:color/tertiary_text_dark"
+        android:textColor="#7A7A7A"
         android:paddingStart="15dp"
         android:paddingEnd="15dp"/>
+
 
 </RelativeLayout>
