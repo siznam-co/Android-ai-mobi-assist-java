@@ -250,6 +250,7 @@ public class MainActivity extends AppCompatActivity {
             contactName = removeWord(contactName, "sms");
             contactName = removeWord(contactName, "to");
             contactName = removeWord(contactName, "message");
+            contactName = removeWord(contactName, "a");
             setType("sms");
             setContactName(contactName);
             searchContacts(contactName);
