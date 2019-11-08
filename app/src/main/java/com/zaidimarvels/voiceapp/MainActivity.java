@@ -250,23 +250,32 @@ public class MainActivity extends AppCompatActivity {
             contactName = removeWord(contactName, "sms");
             contactName = removeWord(contactName, "to");
             contactName = removeWord(contactName, "message");
-            contactName = removeWord(contactName, "a");
+
             setType("sms");
             setContactName(contactName);
             searchContacts(contactName);
-        } else if(result_message.contains("call")){
-            setContactName("");
-            setType("call");
-            contactName = removeWord(result_message, "call");
-            setContactName(contactName);
-            showMessage(contactName);
-            if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.READ_CONTACTS)
-                    == PackageManager.PERMISSION_GRANTED) {
-                searchContacts(getContactName());
-            } else {
-                requestPermission();
-            }
+        } else if(result_message.contains("call")) {
+            if (result_message.contains("abdullah")) {
+                AudioManager mAudioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+                speak("Enjoy music...");
+                if (mAudioManager == null)
+                    mAudioManager = (AudioManager)getSystemService(AUDIO_SERVICE);
 
+                KeyEvent event = new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_MEDIA_PLAY);
+                mAudioManager.dispatchMediaKeyEvent(event);
+            } else {
+                setContactName("");
+                setType("call");
+                contactName = removeWord(result_message, "call");
+                setContactName(contactName);
+                showMessage(contactName);
+                if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.READ_CONTACTS)
+                        == PackageManager.PERMISSION_GRANTED) {
+                    searchContacts(getContactName());
+                } else {
+                    requestPermission();
+                }
+            }
 
         } else if(result_message.contains("alarm")){
             Intent intent = new Intent(AlarmClock.ACTION_SET_ALARM);
@@ -278,7 +287,7 @@ public class MainActivity extends AppCompatActivity {
                 int start = matcher.start(); // start index of match
                 int end = matcher.end(); // end index of match
                 String result = matcher.group(1);
-                showMessage(result);
+                //showMessage(result);
 
                 String temp = result.substring(0,2);
                 intent.putExtra(AlarmClock.EXTRA_HOUR, Integer.parseInt(temp));
@@ -294,7 +303,7 @@ public class MainActivity extends AppCompatActivity {
                     int start = matcher.start(); // start index of match
                     int end = matcher.end(); // end index of match
                     String result = matcher.group(1);
-                    showMessage(result);
+                    //showMessage(result);
 
                     //int nums = Integer.parseInt(result.split("(?=\\D)")[0]);
                     String temp = result.substring(0,1);
@@ -327,7 +336,7 @@ public class MainActivity extends AppCompatActivity {
 
             KeyEvent event = new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_MEDIA_PLAY);
             mAudioManager.dispatchMediaKeyEvent(event);
-        }else{
+        } else{
             speak("I don't understand, What you're saying!");
         }
     }
